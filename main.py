@@ -15,20 +15,45 @@ def auth():
     }
     print('?'.join((AUTH_URL, urlencode(oparams))))
 
-TOKEN = '198bade3d62e3d604091a7fdc7a48844055d697d3b3aa41c2973d0261a27678319cdfbee5c2e4e9293ccd'
+TOKEN = '7dc66e04ac0f5a03d8508c0daa3fd7b348391c8d84af0de6e34437ee6d8ba0cd9017fae46a7cde8e703ea'
 
 class User:
     '''
     Класс принимает на входе: token, id пользователя
     '''
-    def __init__(self, token, id_vk):
+    def __init__(self, token, user_id):
         self.token = token
-        self.id_vk = id_vk
+        self.user_id = user_id
+
+    def __and__(self, other_user):
+        '''
+        other_user - это другой экземпляр класса user
+        производит сравнение списков id двух экземпляров класса
+        :param other_user: экземпляр класса, с которым нужно сравнить
+        :return: список id общих друзей
+        '''
+        self.other_user_fr_list = other_user.friends_get()['response']['items']
+        self.friends_list = self.friends_get()['response']['items']
+        self.common_list = []
+        for i in self.other_user_fr_list:
+            for j in self.friends_list:
+                if i == j:
+                    self.common_list.append(i)
+                    break
+        users = []
+        for id_user in self.common_list:
+            user = User(self.token, id_user)
+            users.append(id_user)
+        return users
+
+    def __str__(self):
+        self.profile_domain = self.user_get()['response'][0]['domain']
+        return ('https://vk.com/' + self.profile_domain)
 
     def get_params(self):
         return {
             'access_token': self.token,
-            'user_id': self.id_vk,
+            'user_id': self.user_id,
             'order': 'hints',
             'count': '200',
             # 'fields': 'first_name, last_name',
@@ -48,22 +73,6 @@ class User:
         )
         return responce.json()
 
-    def common_friends(self, other_user):
-        '''
-        производит сравнение списков id двух экземпляров класса
-        :param other_user: экземпляр класса, с которым нужно сравнить
-        :return: список id общих друзей
-        '''
-        self.other_user_fr_list = other_user.friends_get()['response']['items']
-        self.friends_list = self.friends_get()['response']['items']
-        self.common_list = []
-        for i in self.other_user_fr_list:
-            for j in self.friends_list:
-                if i == j:
-                    self.common_list.append(i)
-                    break
-        return self.common_list
-
     def user_get(self):
         '''
         внутренний запрос класса, получает с сервера vk данные через метод users.get
@@ -71,7 +80,7 @@ class User:
         '''
         params_2 = {
             'access_token': self.token,
-            'user_id': self.id_vk,
+            'user_id': self.user_id,
             'fields': 'domain',
             'v': 5.52
         }
@@ -82,42 +91,8 @@ class User:
         )
         return responce_2.json()
 
-    def profile_link(self):
-        '''
-
-        :return: генерирует ссылку на профиль в вк для экземпляра класса
-        '''
-        self.profile_domain = self.user_get()['response'][0]['domain']
-        print(f'https://vk.com/{self.profile_domain}')
-
-        # потом придумать, как из списка id - сделать список экземпляров класса
-
-# через перебор циклом, определять id - в виде нового usera
-def main():
-    '''
-    функция принимает название пользователей и возвращает список общих друзей
-    '''
-    command = input('Введите объекты поиска (например: user1 & user2, не забывая о пробелах):')
-    user_1, operator, user_2 = command.split()
-    if operator == '&':
-        search = f'{user_1}.common_friends({user_2})'
-        print(type(search))
-        pprint(search.json())
-    else:
-        print(f'Вы ввели {operator} вместо &. Повторите попытку')
-
-
-
 # auth()
 user1 = User(TOKEN, 192091799)
 user2 = User(TOKEN, 320118571)
-print(type(user1))
-friends_list_1 = user1.friends_get()
-friends_list_2 = user2.friends_get()
-# user2.profile_link()
-# pprint(friends_list_1)
-# pprint(friends_list_2)
-common_list_1 = user1.common_friends(user2)
-# pprint(common_list_1)
-# print(user1)
-# main()
+pprint(user1&user2)
+print(user1)
